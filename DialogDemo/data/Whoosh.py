@@ -2,6 +2,7 @@
 
 import os
 from whoosh.index import create_in
+from whoosh.index import open_dir
 from whoosh.fields import *
 from jieba.analyse import ChineseAnalyzer
 from whoosh.writing import AsyncWriter
@@ -16,16 +17,17 @@ utter:完整句子，用于全匹配
 keyword： 用结巴分词，用于关键词匹配
 '''
 scheam = Schema(
-                                utter = TEXT(stored = True),
-                                keywords = TEXT(stored = True,analyzer = ChineseAnalyzer()) )
-
-
-
+                                context = TEXT(stored = True),
+                                response = TEXT(stored=True),
+                                context_keywords = TEXT(stored = True,analyzer = ChineseAnalyzer()),
+                                response_keywords = TEXT(stored = True,analyzer = ChineseAnalyzer()) 
+)
 
 #创建schema的索引
 if not os.path.exists("index"):
     os.mkdir("index")
     idx = create_in("index",scheam)
+    idx.close()
 
 
 for path in ['test','train','valid']:
@@ -34,14 +36,14 @@ for path in ['test','train','valid']:
         data = json.load(f)
     print(f'the data set contains: # {len(data)}')
     idx = open_dir("index")
-    for i in range(0,len(data)-1):
-        for utter in data[i]:
+    for i in range(len(data)):
+        for j in range(len(data[i])-1):
             writer = idx.writer()
-            utter =  utter.replace(" ","") #去掉json中的空格
-            writer.add_document(utter = utter,keywords = utter )
+            context = data[i][j].replace(" ","")
+            response = data[i][j+1].replace(" ","")
+            writer.add_document(context = context,response = response,context_keywords = context,response_keywords=response)
             writer.commit()
     idx.close()
-
 '''
 此处的导入方式：一条存一句
 ''' 
