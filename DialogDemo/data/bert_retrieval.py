@@ -122,7 +122,7 @@ class BERTRetrievalKGGreedyAgent:
     def reset(self,target,source):
         self.target = target
         self.source = source
-        self.current_node.append(self.source)
+        self.current_node = [source]
         self.topic_history = [source]
         self.history = []
         print(f'[!] the dialog should move from source: {source} to target:  {target}')  
@@ -150,14 +150,23 @@ class BERTRetrievalKGGreedyAgent:
                     continue
                 neighbors.append((node,n,path))
             candidates.extend(neighbors)
+        print(f'[!]the candidates are{candidates}')
+        candidates.sort(key = lambda i:len(i[2])) #要单独写一行，不然 就得到的是 .sort()的返回值None
+        print(f'[!]after sorted{candidates}')
+        return candidates #按路径长度降序输出排序
         # score the f(n) and sort 
-        print(candidates)
-        pass
+        #pass
    
-    def move_on_kg(self,msgs,size =1):
+    def move_on_kg(self,msgs,current_node,size =1):
         '''current nodes are extracted from the human utterance(maybe multiple)'''
-        candidates = self.search_candidates(msgs,self.current_node)[:size]
-        return candidates
+        
+        candidates = self.search_candidates(msgs,current_node) #candidates是个列表
+        candidates = candidates[:size]
+        topics = []
+        for candidate in candidates:
+            topics.append(candidate[1]) # 0->node 1->下一节点 2->path 3->长度
+        print(topics)
+        return topics #这里的topics是下一层里潜在的，可能是cluster（如果size不为1）
     
     def process_utterances(self,topics = None,msgs = None,max_len=10):
         '''copy from bert_retieval_base'''
@@ -221,9 +230,10 @@ class BERTRetrievalKGGreedyAgent:
     def obtain_keywords(self, utterance):
         '''select the keyword that most similar to the current_node as the keyword in the human response'''
         keywords = analyse.extract_tags(utterance)
+        print(f'[!] the keywords in the sentence are {keywords}')
         nodes = [i for i in keywords if i in self.wordnet.nodes]
         assert len(nodes) != 0, f'[!] cannot find the keywords in the human utterances'
-        keyword = random.choice(nodes)
+        keyword = random.choice(nodes) #随便选一个，但这个就有很大改进空间了！！！
         return [keyword]
     
     def get_res(self, data):
@@ -242,18 +252,19 @@ class BERTRetrievalKGGreedyAgent:
         if len(data['msgs']) > 0:
             # 1) move
             response = data['msgs'][-1]['msg']
-            keywords = self.obtain_keywords(response)
-            print(f'the keywords {keywords}')
+            keyword = self.obtain_keywords(response)
+            print(f'the keywords {keyword}')
             print(f'the current_node {self.current_node}')
             if self.current_node:
-                self.current_node = list(set(keywords+self.current_node))
+                self.current_node = list(set(keyword+self.current_node))
             else:
-                self.current_node = list(set(keywords))
-            self.move_on_kg(response,self.current_node)
+                self.current_node = list(set(keyword))
+            topic = self.move_on_kg(response,keyword)
+            self.topic_history.append(topic)
             # 2) obtain the responses based on the next_node
             msgs = [i['msg'] for i in data['msgs']]
             msgs = ' [SEP] '.join(msgs)
-            res = self.talk(msgs)
+            res = self.talk(msgs,topic)
         else:
             # ?????
             res = self.searcher.talk('', topic=self.current_node)

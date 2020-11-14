@@ -7,6 +7,7 @@ from whoosh.query import*
 from jieba.analyse import ChineseAnalyzer
 from whoosh.writing import AsyncWriter
 import json
+from whoosh.qparser import QueryParser, MultifieldParser
 
 
 # In[89]:
@@ -30,12 +31,16 @@ class WhooshChat:
     '''
     def search(self,msgs=None,topics=None,sample = 10):
         query = []
-        if msgs:
-            query.append(Term("context",msgs,boost = 1)) #句子的增强因子boost = 1
         if topics:
             for topic in topics:
                 query.append(Term("context_keywords",topic,boost=7)) # 关键词的增强因子为7
         query = Or(query)
+        
+        if msgs:
+            parser = QueryParser("context", schema=self.idx.schema) #短语查询
+            query1 = parser.parse(msgs) #句子的增强因子boost = 1 [默认]
+            #print(f'the msgs is {msgs}')
+            query = query | query1
         result = []
         
         with self.idx.searcher() as searcher:
@@ -49,7 +54,7 @@ class WhooshChat:
         return result
     
     def talk(self, msgs, topic=None):
-        print(topic)
+        print(f'the search topic(s): {topic}  [api_for_Whoosh.py]')
         rest = self.search(msgs, sample=1, topics=topic)
         if not rest:
             print('f[!] there is no response in the dataset')
