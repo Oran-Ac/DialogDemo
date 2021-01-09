@@ -1,5 +1,5 @@
-from transformers import BertModel, BertForPreTraining
-
+# from transformers import BertModel, BertForPreTraining
+from header import*
 class BertForPreTraining_for_PostTraining(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)

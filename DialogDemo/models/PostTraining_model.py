@@ -1,5 +1,6 @@
 from model import *
-import torch.nn as nn
+from header import*
+# import torch.nn as nn
 
 class PostTrainingBert(nn.Module):
     def __init__(self,lang='zh'):
