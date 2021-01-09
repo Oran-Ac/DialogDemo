@@ -1,7 +1,7 @@
-from torch.utils.data import Dataset
-from transformers import BertTokenizer
+# from torch.utils.data import Dataset
+# from transformers import BertTokenizer
 from utils import *
-import os
+# import os
 class PostTrainingData(Dataset):
     def __init__(self,path,mode='train',max_len=300,lang='zh'):
         self.mode = mode
