@@ -1,5 +1,5 @@
-import random
-
+from header import*
+# import random
     
 def read_data_for_PostTraining(path, lang='zh',max_predictions_per_seq=25,masked_lm_prob=0.15):
     spliter = '' if lang == 'zh' else ' '
